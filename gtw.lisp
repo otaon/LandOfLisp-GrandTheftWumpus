@@ -10,6 +10,7 @@
 (defparameter *worm-num* 3)     ; ギャング Gluesome Glowworm のチーム数
 (defparameter *cop-odds* 15)    ; 検問のある確率(1/*cop-odds*の確率)
 
+;; ランダムなエッジの生成
 (defun random-node ()
   "ランダムなノード番号を返す
    ノード番号は1始まり"
