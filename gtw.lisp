@@ -1,6 +1,3 @@
-;; 7章で作成したグラフ操作系のユーティリティを読み込む
-(load "graph-util")
-
 ;; congestion city の情報
 (defparameter *congestion-city-nodes* nil)
 (defparameter *congestion-city-edges* nil)
@@ -37,7 +34,7 @@
                    (eql (car x) node))
                  edge-list))
 
-(defun get- connected (node edge-list)
+(defun get-connected (node edge-list)
   (let ((visited nil))
     (labels ((traverse (node)
                (unless (member node visited)
@@ -61,7 +58,7 @@
 
 (defun connect-with-bridges (islands)
   (when (cdr islands)
-    (append (edge-pair (caar islands) (caadr islands))\
+    (append (edge-pair (caar islands) (caadr islands))
             (connect-with-bridges (cdr islands)))))
 
 (defun connect-all-islands (nodes edge-list)
