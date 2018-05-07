@@ -93,3 +93,45 @@
   (append (connect-with-bridges (find-islands nodes edge-list)) edge-list))
 
 
+;; congestion city のためのエッジリストを完成させる
+(defun make-city-edges ()
+  "congestion city のエッジリストを作成する"
+  ;; nodes: 1から*node-num*までのノード番号のリスト
+  ;; edge-list: 街の全ノードに接続されたエッジのリスト
+  ;; cops: 警察の検問を設置したエッジのリスト
+  (let* ((nodes (loop for i from 1 to *node-num*
+                      collect i))
+         (edge-list (connect-all-islands nodes (make-edge-list)))
+         ;; 1 / *cop-odds* の確率でedge-listから要素を抽出しcopsに追加する
+         (cops (remove-if-not (lambda (x)
+                                (zerop (random *cop-odds*)))
+                              edge-list)))
+    (add-cops (edges-to-alist edge-list) cops)))
+
+(defun edges-to-alist (edge-list)
+  "エッジをalistに変換する
+   edge-list: ((1.2)(2.1)...(a.b)(b.a)) 形式のエッジのリスト
+   return: ((1 (2)) (2 (1) (3)) (3 (2))) 形式のエッジのalist"
+  (mapcar (lambda (node1)
+            (cons node1
+                  (mapcar (lambda (edge)
+                            (list (cdr edge)))
+                          (remove-duplicates (direct-edges node1 edge-list)
+                                             :test #'equal))))
+          (remove-duplicates (mapcar #'car edge-list))))
+
+(defun add-cops (edge-alist edges-with-cops)
+  (mapcar (lambda (x)
+            (let ((node1 (car x))
+                  (node1-edges (cdr x)))
+              (cons node1
+                    (mapcar (lambda (edge)
+                              (let ((node2 (car edge)))
+                                (if (intersection (edge-pair node1 node2)
+                                                  edges-with-cops
+                                                  :test #'equal)
+                                    (list node2 'cops)
+                                    edge)))
+                            node1-edges))))
+          edge-alist))
+
