@@ -31,17 +31,19 @@
 
 ;; 孤島を作らない
 (defun direct-edges (node edge-list)
-  "nodeが起点となるエッジをedge-listから抽出する
-   node: 起点となるノード
-   edge-list: 全エッジのリスト"
+  "nodeと直接つながっているエッジをedge-listから抽出する
+   node: 起点となるノード B
+   edge-list: 全エッジのリスト ((A.B)(B.A)(B.C)(C.B))
+   return: nodeと直接つながっているエッジのリスト ((B.A)(B.C))"
   (remove-if-not (lambda (x)
                    (eql (car x) node))
                  edge-list))
 
 (defun get-connected (node edge-list)
   "繋がっているノードを探す
-   node: 出発点となるノード
-   edge-list: 全エッジのリスト"
+   node: 出発点となるノード A
+   edge-list: 全エッジのリスト ((A.B)(B.A)(B.C)(C.B)(D.E)(E.D))
+   return: 出発点と繋がっているノードのリスト (ABC)"
   (let ((visited nil))  ; 探索済みのノードリスト
     (labels ((traverse (node)
                "接続されたノードを横断しつつ訪問済みノードをvisitedに追加する
@@ -58,9 +60,9 @@
 
 (defun find-islands (nodes edge-list)
   "街に存在する島を列挙する
-   nodes: 全てのノードのリスト
-   edge-list: 全てのエッジのリスト
-   return islands: 街に存在する島のリスト"
+   nodes: 全てのノードのリスト  (ABCDE)
+   edge-list: 全てのエッジのリスト ((A.B)(B.A)(B.C)(C.B)(D.E)(E.D))
+   return islands: 街に存在する島のリスト ((DE)(ABC))"
   (let ((islands nil))  ; 島ノードリスト
     (labels ((find-island (nodes)
                "ノードを島リスト(islands)に追加する
@@ -79,17 +81,17 @@
 
 (defun connect-with-bridges (islands)
   "2つ以上島がある場合、それらの島に橋を架ける
-   islands: 島のリスト
-   return: 橋となるエッジのリスト"
+   islands: 島のリスト  ((ABC)(DE))
+   return: 橋となるエッジのリスト   ((A.D)(D.A))"
   (when (cdr islands)
     (append (edge-pair (caar islands) (caadr islands))
             (connect-with-bridges (cdr islands)))))
 
 (defun connect-all-islands (nodes edge-list)
   "街に存在する島々に橋を架ける
-   nodes: 全てのノードのリスト
-   edge-list: 全てのエッジのリスト
-   return: 橋を架けた後のエッジのリスト"
+   nodes: 全てのノードのリスト  (ABCDE)
+   edge-list: 全てのエッジのリスト  ((A.B)(B.A)(B.C)(C.B)(D.E)(E.D))
+   return: 橋を架けた後のエッジのリスト ((A.D)(D.A)(A.B)(B.A)(B.C)(C.B)(D.E)(E.D))"
   (append (connect-with-bridges (find-islands nodes edge-list)) edge-list))
 
 
@@ -98,12 +100,12 @@
   "congestion city のエッジリストを作成する"
   ;; nodes: 1から*node-num*までのノード番号のリスト
   ;; edge-list: 街の全ノードに接続されたエッジのリスト
-  ;; cops: 警察の検問を設置したエッジのリスト
+  ;; cops: 警察の検問所を設置したエッジのリスト
   (let* ((nodes (loop for i from 1 to *node-num*
                       collect i))
          (edge-list (connect-all-islands nodes (make-edge-list)))
          ;; 1 / *cop-odds* の確率でedge-listから要素を抽出しcopsに追加する
-         (cops (remove-if-not (lambda (x)
+         (cops (remove-if-not (lambda ()
                                 (zerop (random *cop-odds*)))
                               edge-list)))
     (add-cops (edges-to-alist edge-list) cops)))
@@ -113,14 +115,22 @@
    edge-list: ((1.2)(2.1)...(a.b)(b.a)) 形式のエッジのリスト
    return: ((1 (2)) (2 (1) (3)) (3 (2))) 形式のエッジのalist"
   (mapcar (lambda (node1)
+            ;; node1 をキーとしてそれに直接繋がっているエッジのalist要素 (1 (2)))
             (cons node1
+                  ;; 各ノードに直接つながっているエッジのリスト ((2))
                   (mapcar (lambda (edge)
                             (list (cdr edge)))
+                          ;; node1とそれに直接つながっているエッジのリスト((1.2))
                           (remove-duplicates (direct-edges node1 edge-list)
                                              :test #'equal))))
+          ;; エッジの起点となるノードのリスト(1 2 3 ...)
           (remove-duplicates (mapcar #'car edge-list))))
 
 (defun add-cops (edge-alist edges-with-cops)
+  "alistに検問所の情報を追加する
+   edge-alist:エッジのalist
+   edges-with-cops: 検問所のあるエッジのリスト
+   return: 検問所の情報が追加されたエッジのalist"
   (mapcar (lambda (x)
             (let ((node1 (car x))
                   (node1-edges (cdr x)))
