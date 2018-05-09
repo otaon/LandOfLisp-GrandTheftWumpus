@@ -145,3 +145,59 @@
                             node1-edges))))
           edge-alist))
 
+;; congestion cityのノードリストを作る
+(defun neighbors (node edge-alist)
+  "nodeに直接繋がっているノードのリストを返す
+   node: 基準となるノード 2
+   edge-alist: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
+   return: 直接繋がっているノードのリスト (1 3)"
+  (mapcar #'car (cdr (assoc node edge-alist))))
+
+(defun within-one (a b edge-alist)
+  "ノードbが他ノードaと隣同士で繋がっているかを返す
+   a: 基準となるノード 1
+   b: 隣同士で繋がっているか判定したいノード 3
+   edge-alist: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
+   return: 隣同士で繋がっているかの真偽値 nil"
+  (member b (neighbors a edge-alist)))
+
+(defun within-two (a b edge-alist)
+  "ノードbが隣同士で、または、他ノードを挟んでノードaと繋がっているかを返す
+   a: 基準となるノード 1
+   b: 隣同士で、または、他ノードを挟んで繋がっているか判定したいノード 3
+   edge-alist: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
+   return: 隣同士で、または、他ノードを挟んで繋がっているかの真偽値 t"
+  (or (within-one a b edge-alist)
+      ;; aの隣のノードの中で、bの隣のノードが1つ以上存在するか
+      (some (lambda (x)
+              (within-one x b edge-alist))
+            (neighbors a edge-alist))))
+
+(defun make-city-nodes (edge-alist)
+  "congestion city の最終的なマップを返す
+   edge-alist: 街のエッジのリスト
+   return: 情報つきの街の全ノードのリスト"
+  ;; wumpus: wumpusがいるノードの番号(wumpusは一人なので一箇所)
+  ;; glow-worms: glow-wormsがいるノードの番号
+  (let ((wumpus (random-node))
+        (glow-worms (loop for i below *worm-num*
+                          collect (random-node))))
+    ;; 街の各ノードにゲーム情報を追加して、街のノードのリストを
+    (loop for n from 1 to *node-num*
+          collect (append (list n)
+                          ;; wumpusがいるノードには「wumpus」情報を追加
+                          ;; wumpusが隣か二つ隣にいるノードには「blood!」情報を追加
+                          (cond ((eql n wumpus) '(wumpus))
+                                ((within-two n wumpus edge-alist) '(blood!)))
+                          ;; glow wormがいるノードには「glow-worms」情報を追加
+                          ;; glow wormが隣にいるノードには「lights!」情報を追加
+                          (cond ((member n glow-worms)
+                                 '(glow-worms))
+                                ((some (lambda (worm)
+                                         (within-one n worm edge-alist))
+                                       glow-worms)
+                                 '(lights!)))
+                          ;; 警察が隣接する道路（エッジ）にいるノードには「sirens!」情報を追加
+                          (when (some #'cdr (cdr (assoc n edge-alist)))
+                            '(sirens!))))))
+
