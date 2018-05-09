@@ -6,6 +6,7 @@
 (defparameter *edge-num* 45)    ; congestion city の道路の本数
 (defparameter *worm-num* 3)     ; ギャング Gluesome Glowworm のチーム数
 (defparameter *cop-odds* 15)    ; 検問のある確率(1/*cop-odds*の確率)
+(defvar *player-pos*)           ; プレイヤーがいるノード
 
 ;; ランダムなエッジの生成
 (defun random-node ()
@@ -200,4 +201,22 @@
                           ;; 警察が隣接する道路（エッジ）にいるノードには「sirens!」情報を追加
                           (when (some #'cdr (cdr (assoc n edge-alist)))
                             '(sirens!))))))
+
+
+;; gtwを初期化する
+(defun new-game ()
+  "ゲームを初期化する"
+  (setf *congestion-city-edges* (make-city-edges))
+  (setf *congestion-city-nodes* (make-city-nodes *congestion-city-edges*))
+  (setf *player-pos* (find-empty-node))
+  (setf *visited-nodes* (list *player-pos*))
+  (draw-city))
+
+(defun find-empty-node ()
+  "プレーヤーが敵と同じ場所に配置されないように、空のノードを探し出す
+   return: 情報が追加されていないノードの番号"
+  (let ((x (random-node)))
+    (if (cdr (assoc x *congestion-city-nodes*))
+        (find-empty-node)
+        x)))
 
