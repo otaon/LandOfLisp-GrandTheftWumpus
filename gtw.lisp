@@ -220,3 +220,7 @@
         (find-empty-node)
         x)))
 
+;; congestion cityのマップを描く
+(defun draw-city ()
+  (ugraph->png "city" *congestion-city-nodes* *congestion-city-edges*))
+
