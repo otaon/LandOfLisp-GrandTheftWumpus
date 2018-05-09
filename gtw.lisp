@@ -128,7 +128,7 @@
 
 (defun add-cops (edge-alist edges-with-cops)
   "alistに検問所の情報を追加する
-   edge-alist:エッジのalist
+   edge-alist: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
    edges-with-cops: 検問所のあるエッジのリスト
    return: 検問所の情報が追加されたエッジのalist"
   (mapcar (lambda (x)
