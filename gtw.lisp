@@ -107,7 +107,8 @@
                       collect i))
          (edge-list (connect-all-islands nodes (make-edge-list)))
          ;; 1 / *cop-odds* の確率でedge-listから要素を抽出しcopsに追加する
-         (cops (remove-if-not (lambda ()
+         (cops (remove-if-not (lambda (x)
+                                (declare (ignore x))
                                 (zerop (random *cop-odds*)))
                               edge-list)))
     (add-cops (edges-to-alist edge-list) cops)))
