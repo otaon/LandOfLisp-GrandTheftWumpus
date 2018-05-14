@@ -224,3 +224,50 @@
 (defun draw-city ()
   (ugraph->png "city" *congestion-city-nodes* *congestion-city-edges*))
 
+;; 部分的な知識から congestion city を描く
+(defun known-city-nodes ()
+  "既知のノードからなるalistを作る"
+  ;; 既に訪れたノード&そこに直接繋がったノード(?と*付き)のリスト
+  (mapcar (lambda (node)
+            ;; nodeが既に訪れたノードで、
+            ;; - 現在プレイヤーがいるノードなら(node node情報 *)を表示する
+            ;; - 現在プレイヤーがいないノードなら(node node情報)を表示する
+            ;; nodeがまだ訪れていないノードなら(node番号 ?)を表示する
+            (if (member node *visited-nodes*)
+                (let ((n ( assoc node *congestion-city-nodes*)))
+                  (if (eql node *player-pos*)
+                      (append n '(*))
+                      n))
+                (list node '?)))
+          ;; 既に訪れたノード&そこに直接繋がったノードのリスト
+          ;; *congestion-city-edges*: '((1 (2)) (2 (1) (3)) (3 (2)) (4 (3)))
+          ;; *visited-nodes*: '(1 2)
+          ;; return: '(1 2 3)
+          (remove-duplicates
+            (append *visited-nodes*
+                    ;; 既に訪れたノードに直接繋がったノードのリスト
+                    ;; *congestion-city-edges*: '((1 (2)) (2 (1) (3)) (3 (2) (4)) (4 (3)))
+                    ;; *visited-nodes*: '(1 2)
+                    ;; return '(2 1 3)
+                    (mapcan (lambda (node)
+                              (mapcar #'car
+                                      (cdr (assoc node *congestion-city-edges*))))
+                            *visited-nodes*)))))
+
+(defun known-city-edges ()
+  "まだ訪れていない道にいる警官のサイレンの情報を取り除いたエッジのalistを作る"
+  (mapcar (lambda (node)
+            ;; すべての既に訪れたノードに対して警察のサイレンの情報を消すか否か操作する
+            ;; 操作したエッジ情報を使って新たにエッジのalistを作る
+            (cons node (mapcar (lambda (x)
+                                 ;; 両端が既に訪れたノード(=通った道)
+                                 ;;   ...警察のサイレンの情報をそのまま残す
+                                 ;; 少なくとも片方がまだ訪れていないノード(=通ってない道)
+                                 ;;   ...警察のサイレンの情報を消す
+                                 (if (member (car x) *visited-nodes*)
+                                     x
+                                     (list (car x))))
+                               ;; 既に訪れたノードに直接繋がったリスト
+                               (cdr (assoc node *congestion-city-edges*)))))
+          *visited-nodes*))
+
