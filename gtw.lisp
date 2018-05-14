@@ -47,8 +47,8 @@
    return: 出発点と繋がっているノードのリスト (ABC)"
   (let ((visited nil))  ; 探索済みのノードリスト
     (labels ((traverse (node)
-               "接続されたノードを横断しつつ訪問済みノードをvisitedに追加する
-                node: 訪れたノード"
+               ;; 接続されたノードを横断しつつ訪問済みノードをvisitedに追加する
+               ;; node: 訪れたノード
                ;; nodeが未訪問ならvisitedに追加して、訪問を続ける
                (unless (member node visited)
                  (push node visited)
@@ -66,8 +66,9 @@
    return islands: 街に存在する島のリスト ((DE)(ABC))"
   (let ((islands nil))  ; 島ノードリスト
     (labels ((find-island (nodes)
-               "ノードを島リスト(islands)に追加する
-                nodes: 出発点となるノードのリスト"
+               ;; ノードを島リスト(islands)に追加する
+               ;; nodes: 出発点となるノードのリスト
+
                ;; connected: 対象ノードとそれに繋がっているノードのリスト
                ;; unconnected: 対象ノードに繋がっていないノードのリスト
                (let* ((connected (get-connected (car nodes) edge-list))
@@ -222,6 +223,7 @@
 
 ;; congestion cityのマップを描く
 (defun draw-city ()
+  "graphvizを使ってcongestion cityのマップを描く"
   (ugraph->png "city" *congestion-city-nodes* *congestion-city-edges*))
 
 ;; 部分的な知識から congestion city を描く
