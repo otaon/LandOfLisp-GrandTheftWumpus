@@ -1,3 +1,7 @@
+;; graphviz用のユーティリティをロードする
+(ext:cd "~/github/LandOfLisp/LandOfLisp-GrandTheftWumpus/")
+(load "GraphMaker.lisp")
+
 ;; congestion city の情報
 (defparameter *congestion-city-nodes* nil)
 (defparameter *congestion-city-edges* nil)
