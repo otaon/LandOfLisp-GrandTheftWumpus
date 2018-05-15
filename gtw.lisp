@@ -274,3 +274,7 @@
                                (cdr (assoc node *congestion-city-edges*)))))
           *visited-nodes*))
 
+(defun draw-known-city ()
+  "既知の部分だけの地図を描く"
+  (ugraph->png "known-city" (known-city-nodes) (known-city-edges)))
+
