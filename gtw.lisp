@@ -5,6 +5,7 @@
 ;; ゲームで使用するディレクトリの名前
 (defparameter *game-directory* "graph")
 
+
 ;; congestion city の情報
 (defparameter *congestion-city-nodes* nil)
 (defparameter *congestion-city-edges* nil)
@@ -14,6 +15,7 @@
 (defparameter *worm-num* 3)     ; ギャング Gluesome Glowworm のチーム数
 (defparameter *cop-odds* 15)    ; 検問のある確率(1/*cop-odds*の確率)
 (defvar *player-pos*)           ; プレイヤーがいるノード
+
 
 ;; ランダムなエッジの生成
 (defun random-node ()
@@ -36,6 +38,7 @@
    さらに、完全一致するエッジが生成される可能性もある"
   (apply #'append (loop repeat *edge-num*
                         collect (edge-pair (random-node) (random-node)))))
+
 
 ;; 孤島を作らない
 (defun direct-edges (node edge-list)
@@ -155,6 +158,7 @@
                             node1-edges))))
           edge-alist))
 
+
 ;; congestion cityのノードリストを作る
 (defun neighbors (node edge-alist)
   "nodeに直接繋がっているノードのリストを返す
@@ -230,12 +234,14 @@
         (find-empty-node)
         x)))
 
+
 ;; congestion cityのマップを描く
 (defun draw-city ()
   "graphvizを使ってcongestion cityのマップを描く"
   (ugraph->png (concatenate 'string *game-directory* "/" "city")
                *congestion-city-nodes*
                *congestion-city-edges*))
+
 
 ;; 部分的な知識から congestion city を描く
 (defun known-city-nodes ()
@@ -289,6 +295,49 @@
   (ugraph->png (concatenate 'string *game-directory* "/" "known-city")
                (known-city-nodes)
                (known-city-edges)))
+
+
+;; 街を歩き回る
+(defun walk (pos)
+  "ただ移動するだけ"
+  (handle-direction pos nil))
+
+(defun charge (pos)
+  "移動しつつ残った最後の弾丸で攻撃する"
+  (handle-direction pos t))
+
+(defun handle-direction (pos charging)
+  "posが移動できるノードなら移動する
+   攻撃を選択していたら攻撃する"
+  ;; 現在位置からposへ行く道があれば、移動と、場合によっては攻撃する
+  ;; 現在位置からposへ行く道がなければ、移動できない旨のメッセージを表示する
+  (let ((edge (assoc pos
+                     (cdr (assoc *player-pos* *congestion-city-edges*)))))
+    (if edge
+        (handle-new-place edge pos charging)
+        (princ "That location does not exist!"))))
+
+(defun handle-new-place (edge pos charging)
+  "posへ移動する。cop, wumpus, glow wormの有無によってイベントメッセージを表示する"
+  ;; node:     移動先のノード情報
+  ;; has-worm: glow wormがいるか否かのフラグ
+  ;;           ただしglow worm は1匹につき1回のみ攻撃するため、
+  ;;           訪問済みノードの場合、glow wormはいないものとする
+  (let* ((node (assoc pos *congestion-city-nodes*))
+         (has-worm (and (member 'glow-worm node)
+                        (not (member pos *visited-nodes*)))))
+    (pushnew pos *visited-nodes*)   ; posを訪問済みノードに追加する
+    (setf *player-pos* pos)         ; 現在位置をposに更新する
+    (draw-known-city)               ; 既知の部分だけの地図を描く
+    (cond ((member 'cops edge) (princ "You ran into the cops. Game Over."))
+          ((member 'wumpus node) (if charging
+                                     (princ "You found the Wumpus!")
+                                     (princ "You ran into the Wumpus")))
+          (charging (princ "You wasted your last bullet. Game Over!"))
+          (has-worm (let ((new-pos (random-node)))
+                      (princ "You ran into a Glow Worm Gang! You're now at ")
+                      (princ new-pos)
+                      (handle-new-place nil new-pos nil))))))
 
 
 ;;; ---------------------------------------------------------------
