@@ -1,6 +1,5 @@
-;; graphviz用のユーティリティをロードする
-(ext:cd "~/github/LandOfLisp/LandOfLisp-GrandTheftWumpus/")
-(load "GraphMaker.lisp")
+;; ゲームで使用するディレクトリの名前
+(defparameter *game-directory* "graph")
 
 ;; congestion city の情報
 (defparameter *congestion-city-nodes* nil)
@@ -216,7 +215,8 @@
   (setf *congestion-city-nodes* (make-city-nodes *congestion-city-edges*))
   (setf *player-pos* (find-empty-node))
   (setf *visited-nodes* (list *player-pos*))
-  (draw-city))
+  (draw-city)
+  (draw-known-city))
 
 (defun find-empty-node ()
   "プレーヤーが敵と同じ場所に配置されないように、空のノードを探し出す
@@ -229,7 +229,9 @@
 ;; congestion cityのマップを描く
 (defun draw-city ()
   "graphvizを使ってcongestion cityのマップを描く"
-  (ugraph->png "city" *congestion-city-nodes* *congestion-city-edges*))
+  (ugraph->png (concatenate 'string *game-directory* "/" "city")
+               *congestion-city-nodes*
+               *congestion-city-edges*))
 
 ;; 部分的な知識から congestion city を描く
 (defun known-city-nodes ()
@@ -278,7 +280,20 @@
                                (cdr (assoc node *congestion-city-edges*)))))
           *visited-nodes*))
 
+;; カレントディレクトリを変更する
+(ext:cd "~/github/LandOfLisp/LandOfLisp-GrandTheftWumpus/")
+
+;; graphvizが生成するファイルを格納するディレクトリを作成する
+(ensure-directories-exist
+  (make-pathname :directory
+                 (append (pathname-directory (ext:default-directory)) (list *game-directory*))))
+
+;; graphviz用のユーティリティをロードする
+(load "GraphMaker.lisp")
+
 (defun draw-known-city ()
   "既知の部分だけの地図を描く"
-  (ugraph->png "known-city" (known-city-nodes) (known-city-edges)))
+  (ugraph->png (concatenate 'string *game-directory* "/" "known-city")
+               (known-city-nodes)
+               (known-city-edges)))
 

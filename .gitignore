@@ -1,3 +1,4 @@
+graph/
 *.fas
 *.lib
 *.FASL
