@@ -1,3 +1,7 @@
+;;; ---------------------------------------------------------------
+;;; ゲーム用パラメータ・関数定義
+;;; ---------------------------------------------------------------
+
 ;; ゲームで使用するディレクトリの名前
 (defparameter *game-directory* "graph")
 
@@ -280,20 +284,25 @@
                                (cdr (assoc node *congestion-city-edges*)))))
           *visited-nodes*))
 
-;; カレントディレクトリを変更する
-(ext:cd "~/github/LandOfLisp/LandOfLisp-GrandTheftWumpus/")
-
-;; graphvizが生成するファイルを格納するディレクトリを作成する
-(ensure-directories-exist
-  (make-pathname :directory
-                 (append (pathname-directory (ext:default-directory)) (list *game-directory*))))
-
-;; graphviz用のユーティリティをロードする
-(load "GraphMaker.lisp")
-
 (defun draw-known-city ()
   "既知の部分だけの地図を描く"
   (ugraph->png (concatenate 'string *game-directory* "/" "known-city")
                (known-city-nodes)
                (known-city-edges)))
+
+
+;;; ---------------------------------------------------------------
+;;; ゲーム開始
+;;; ---------------------------------------------------------------
+
+;; カレントディレクトリを変更する
+(ext:cd "~/github/LandOfLisp/LandOfLisp-GrandTheftWumpus/")
+
+;; graphviz用のユーティリティをロードする
+(load "GraphMaker.lisp")
+
+;; graphvizが生成するファイルを格納するディレクトリを作成する
+(ensure-directories-exist
+  (make-pathname :directory
+                 (append (pathname-directory (ext:default-directory)) (list *game-directory*))))
 
