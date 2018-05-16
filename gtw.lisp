@@ -329,15 +329,23 @@
     (pushnew pos *visited-nodes*)   ; posを訪問済みノードに追加する
     (setf *player-pos* pos)         ; 現在位置をposに更新する
     (draw-known-city)               ; 既知の部分だけの地図を描く
-    (cond ((member 'cops edge) (princ "You ran into the cops. Game Over."))
-          ((member 'wumpus node) (if charging
-                                     (princ "You found the Wumpus!")
-                                     (princ "You ran into the Wumpus")))
-          (charging (princ "You wasted your last bullet. Game Over!"))
-          (has-worm (let ((new-pos (random-node)))
-                      (princ "You ran into a Glow Worm Gang! You're now at ")
-                      (princ new-pos)
-                      (handle-new-place nil new-pos nil))))))
+    ;; ノード、または、エッジの状態によってプレイヤー状態を更新する
+    (cond
+      ;; 通り道に警察がいたら捕まってゲームオーバー
+      ((member 'cops edge) (princ "You ran into the cops. Game Over."))
+      ;; 移動先のノードにwumpusがいた場合、
+      ;;   攻撃していたら、wumpusを見つけた
+      ;;   攻撃していなかったら、wumpusに追いついた
+      ((member 'wumpus node) (if charging
+                                 (princ "You found the Wumpus!")
+                                 (princ "You ran into the Wumpus")))
+      ;; 最後の弾丸を無駄にしたらゲームオーバー
+      (charging (princ "You wasted your last bullet. Game Over!"))
+      ;; Glow Wormに出会ったらランダムな場所に飛ばされる
+      (has-worm (let ((new-pos (random-node)))
+                  (princ "You ran into a Glow Worm Gang! You're now at ")
+                  (princ new-pos)
+                  (handle-new-place nil new-pos nil))))))
 
 
 ;;; ---------------------------------------------------------------
@@ -353,5 +361,7 @@
 ;; graphvizが生成するファイルを格納するディレクトリを作成する
 (ensure-directories-exist
   (make-pathname :directory
-                 (append (pathname-directory (ext:default-directory)) (list *game-directory*))))
+                 (append
+                   (pathname-directory (ext:default-directory))
+                   (list *game-directory*))))
 
