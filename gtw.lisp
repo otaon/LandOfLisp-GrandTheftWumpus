@@ -17,6 +17,19 @@
 (defvar *player-pos*)           ; プレイヤーがいるノード
 
 
+;; リストをハッシュテーブルに変換する
+(defun hash-edges (edge-list)
+  "リストの全てのキーとバリューをハッシュテーブルにプッシュする"
+  (let ((tab (make-hash-table)))    ; tab: ハッシュテーブル
+    (mapc (lambda (x)
+            (let ((node (car x)))   ; node: キー
+              ;; cdr x: バリュー
+              ;; gethash node tab: ハッシュテーブルにおいてキーがnodeの場所
+              (push (cdr x) (gethash node tab))))
+          edge-list)
+    tab))
+
+
 ;; ランダムなエッジの生成
 (defun random-node ()
   "ランダムなノード番号を返す
@@ -66,6 +79,18 @@
                  (mapc (lambda (edge)
                          (traverse (cdr edge)))
                        (direct-edges node edge-list)))))
+      (traverse node))
+    visited))
+
+(defun get-connected-hash (node edge-tab)
+  "繋がっているノードを探す（ハッシュテーブル版）"
+  (let ((visited (make-hash-table)))
+    (labels ((traverse (node)
+               (unless (gethash node visited)
+                 (setf (gethash node visited) t)
+                 (mapc (lambda (edge)
+                         (traverse edge))
+                       (gethash node edge-tab)))))
       (traverse node))
     visited))
 
