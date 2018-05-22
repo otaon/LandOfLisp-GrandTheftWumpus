@@ -6,7 +6,7 @@
 (defparameter *game-directory* "graph")
 
 
-;; congestion city の情報
+;; congestion city の情報{{{
 (defparameter *congestion-city-nodes* nil)
 (defparameter *congestion-city-edges* nil)
 (defparameter *visited-nodes* nil)
@@ -15,7 +15,7 @@
 (defparameter *worm-num* 3)     ; ギャング Gluesome Glowworm のチーム数
 (defparameter *cop-odds* 15)    ; 検問のある確率(1/*cop-odds*の確率)
 (defvar *player-pos*)           ; プレイヤーがいるノード
-
+;}}}
 
 ;; リストをハッシュテーブルに変換する
 (defun hash-edges (edge-list);{{{
@@ -138,8 +138,7 @@
   ;; nodes: 1から*node-num*までのノード番号のリスト
   ;; edge-list: 街の全ノードに接続されたエッジのリスト
   ;; cops: 警察の検問所を設置したエッジのリスト
-  (let* ((nodes (loop for i from 1 to *node-num*
-                      collect i))
+  (let* ((nodes (loop for i from 1 to *node-num* collect i))
          (edge-list (connect-all-islands nodes (make-edge-list)))
          ;; 1 / *cop-odds* の確率でedge-listから要素を抽出しcopsに追加する
          (cops (remove-if-not (lambda (x)
@@ -241,6 +240,10 @@
                             '(sirens!))))));}}}
 
 
+;;; ---------------------------------------------------------------
+;;; ゲームエンジン本体
+;;; ---------------------------------------------------------------
+
 ;; gtwを初期化する
 (defun new-game ();{{{
   "ゲームを初期化する"
@@ -269,6 +272,12 @@
 
 
 ;; 部分的な知識から congestion city を描く
+(defun draw-known-city ();{{{
+  "既知の部分だけの地図を描く"
+  (ugraph->png (concatenate 'string *game-directory* "/" "known-city")
+               (known-city-nodes)
+               (known-city-edges)) ;}}}
+
 (defun known-city-nodes ();{{{
   "既知のノードからなるalistを作る"
   ;; 既に訪れたノード&そこに直接繋がったノード(?と*付き)のリスト
@@ -315,12 +324,10 @@
                                (cdr (assoc node *congestion-city-edges*)))))
           *visited-nodes*));}}}
 
-(defun draw-known-city ();{{{
-  "既知の部分だけの地図を描く"
-  (ugraph->png (concatenate 'string *game-directory* "/" "known-city")
-               (known-city-nodes)
-               (known-city-edges)));}}}
 
+;;; ---------------------------------------------------------------
+;;; ゲームコマンド
+;;; ---------------------------------------------------------------
 
 ;; 街を歩き回る
 (defun walk (pos);{{{
