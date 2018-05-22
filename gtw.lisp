@@ -17,8 +17,8 @@
 (defvar *player-pos*)           ; プレイヤーがいるノード
 ;}}}
 
-;; リストをハッシュテーブルに変換する
-(defun hash-edges (edge-list);{{{
+;; 連想リストをハッシュテーブルに変換する
+(defun alist->hash-table (edge-list);{{{
   "リストの全てのキーとバリューをハッシュテーブルにプッシュする"
   (let ((tab (make-hash-table)))    ; tab: ハッシュテーブル
     (mapc (lambda (x)
@@ -28,6 +28,22 @@
               (push (cdr x) (gethash node tab))))
           edge-list)
     tab));}}}
+
+;; ハッシュテーブルを連想リストに変換する
+(defun hash-table->alist (edge-hash-table);{{{
+  "リストの全てのキーとバリューをハッシュテーブルにプッシュする"
+  (let ((al nil))
+    (maphash (lambda (k v)
+             (princ (cons k (list v)))
+             (fresh-line)
+             (push (cons k (list v)) al))
+           edge-hash-table)
+    ;;
+    ;;====================================
+    ;; ハッシュテーブルにしたことで必要なデータが落ちているのでは……？要確認
+    ;;====================================
+    ;;
+    al));}}}
 
 
 ;; ランダムなエッジの生成
@@ -184,59 +200,59 @@
 
 
 ;; congestion cityのノードリストを作る
-(defun neighbors (node edge-alist);{{{
+(defun neighbors (node edge-hash-table);{{{
   "nodeに直接繋がっているノードのリストを返す
    node: 基準となるノード 2
-   edge-alist: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
+   edge-hash-table: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
    return: 直接繋がっているノードのリスト (1 3)"
-  (mapcar #'car (cdr (assoc node edge-alist))));}}}
+  (mapcar #'car (cdr (gethash node edge-hash-table))));}}}
 
-(defun within-one (a b edge-alist);{{{
+(defun within-one (a b edge-hash-table);{{{
   "ノードbが他ノードaと隣同士で繋がっているかを返す
    a: 基準となるノード 1
    b: 隣同士で繋がっているか判定したいノード 3
-   edge-alist: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
+   edge-hash-table: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
    return: 隣同士で繋がっているかの真偽値 nil"
-  (member b (neighbors a edge-alist)));}}}
+  (member b (neighbors a edge-hash-table)));}}}
 
-(defun within-two (a b edge-alist);{{{
+(defun within-two (a b edge-hash-table);{{{
   "ノードbが隣同士で、または、他ノードを挟んでノードaと繋がっているかを返す
    a: 基準となるノード 1
    b: 隣同士で、または、他ノードを挟んで繋がっているか判定したいノード 3
-   edge-alist: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
+   edge-hash-table: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
    return: 隣同士で、または、他ノードを挟んで繋がっているかの真偽値 t"
-  (or (within-one a b edge-alist)
+  (or (within-one a b edge-hash-table)
       ;; aの隣のノードの中で、bの隣のノードが1つ以上存在するか
       (some (lambda (x)
-              (within-one x b edge-alist))
-            (neighbors a edge-alist))));}}}
+              (within-one x b edge-hash-table))
+            (neighbors a edge-hash-table))));}}}
 
-(defun make-city-nodes (edge-alist);{{{
+(defun make-city-nodes (edge-hash-table);{{{
   "congestion city の最終的なマップを返す
-   edge-alist: 街のエッジのリスト
+   edge-hash-table: 街のエッジのハッシュテーブル
    return: 情報つきの街の全ノードのリスト"
   ;; wumpus: wumpusがいるノードの番号(wumpusは一人なので一箇所)
   ;; glow-worms: glow-wormsがいるノードの番号
   (let ((wumpus (random-node))
         (glow-worms (loop for i below *worm-num*
                           collect (random-node))))
-    ;; 街の各ノードにゲーム情報を追加して、街のノードのリストを
+    ;; 街の各ノードにゲーム情報を追加して、街のノードのリストを作成する
     (loop for n from 1 to *node-num*
           collect (append (list n)
                           ;; wumpusがいるノードには「wumpus」情報を追加
                           ;; wumpusが隣か二つ隣にいるノードには「blood!」情報を追加
                           (cond ((eql n wumpus) '(wumpus))
-                                ((within-two n wumpus edge-alist) '(blood!)))
+                                ((within-two n wumpus edge-hash-table) '(blood!)))
                           ;; glow wormがいるノードには「glow-worms」情報を追加
                           ;; glow wormが隣にいるノードには「lights!」情報を追加
                           (cond ((member n glow-worms)
                                  '(glow-worms))
                                 ((some (lambda (worm)
-                                         (within-one n worm edge-alist))
+                                         (within-one n worm edge-hash-table))
                                        glow-worms)
                                  '(lights!)))
                           ;; 警察が隣接する道路（エッジ）にいるノードには「sirens!」情報を追加
-                          (when (some #'cdr (cdr (assoc n edge-alist)))
+                          (when (some #'cdr (cdr (gethash n edge-hash-table)))
                             '(sirens!))))));}}}
 
 
@@ -247,8 +263,8 @@
 ;; gtwを初期化する
 (defun new-game ();{{{
   "ゲームを初期化する"
-  (setf *congestion-city-edges* (make-city-edges))
-  (setf *congestion-city-nodes* (make-city-nodes *congestion-city-edges*))
+  (setf *congestion-city-edges* (alist->hash-table (make-city-edges)))
+  (setf *congestion-city-nodes* (alist->hash-table (make-city-nodes *congestion-city-edges*)))
   (setf *player-pos* (find-empty-node))
   (setf *visited-nodes* (list *player-pos*))
   (draw-city)
@@ -258,7 +274,7 @@
   "プレーヤーが敵と同じ場所に配置されないように、空のノードを探し出す
    return: 情報が追加されていないノードの番号"
   (let ((x (random-node)))
-    (if (cdr (assoc x *congestion-city-nodes*))
+    (if (cdr (gethash x *congestion-city-nodes*))
         (find-empty-node)
         x)));}}}
 
@@ -267,8 +283,8 @@
 (defun draw-city ();{{{
   "graphvizを使ってcongestion cityのマップを描く"
   (ugraph->png (concatenate 'string *game-directory* "/" "city")
-               *congestion-city-nodes*
-               *congestion-city-edges*));}}}
+               (hash-table->alist *congestion-city-nodes*)
+               (hash-table->alist *congestion-city-edges*)));}}}
 
 
 ;; 部分的な知識から congestion city を描く
@@ -276,7 +292,7 @@
   "既知の部分だけの地図を描く"
   (ugraph->png (concatenate 'string *game-directory* "/" "known-city")
                (known-city-nodes)
-               (known-city-edges)) ;}}}
+               (known-city-edges)));}}}
 
 (defun known-city-nodes ();{{{
   "既知のノードからなるalistを作る"
@@ -287,7 +303,7 @@
             ;; - 現在プレイヤーがいないノードなら(node node情報)を表示する
             ;; nodeがまだ訪れていないノードなら(node番号 ?)を表示する
             (if (member node *visited-nodes*)
-                (let ((n ( assoc node *congestion-city-nodes*)))
+                (let ((n (gethash node *congestion-city-nodes*)))
                   (if (eql node *player-pos*)
                       (append n '(*))
                       n))
@@ -304,7 +320,7 @@
                     ;; return '(2 1 3)
                     (mapcan (lambda (node)
                               (mapcar #'car
-                                      (cdr (assoc node *congestion-city-edges*))))
+                                      (cdr (gethash node *congestion-city-edges*))))
                             *visited-nodes*)))));}}}
 
 (defun known-city-edges ();{{{
@@ -321,7 +337,7 @@
                                      x
                                      (list (car x))))
                                ;; 既に訪れたノードに直接繋がったリスト
-                               (cdr (assoc node *congestion-city-edges*)))))
+                               (cdr (gethash node *congestion-city-edges*)))))
           *visited-nodes*));}}}
 
 
@@ -343,8 +359,8 @@
    攻撃を選択していたら攻撃する"
   ;; 現在位置からposへ行く道があれば、移動と、場合によっては攻撃する
   ;; 現在位置からposへ行く道がなければ、移動できない旨のメッセージを表示する
-  (let ((edge (assoc pos
-                     (cdr (assoc *player-pos* *congestion-city-edges*)))))
+  (let ((edge (gethash pos
+                     (cdr (gethash *player-pos* *congestion-city-edges*)))))
     (if edge
         (handle-new-place edge pos charging)
         (princ "That location does not exist!"))));}}}
@@ -355,7 +371,7 @@
   ;; has-worm: glow wormがいるか否かのフラグ
   ;;           ただしglow worm は1匹につき1回のみ攻撃するため、
   ;;           訪問済みノードの場合、glow wormはいないものとする
-  (let* ((node (assoc pos *congestion-city-nodes*))
+  (let* ((node (gethash pos *congestion-city-nodes*))
          (has-worm (and (member 'glow-worm node)
                         (not (member pos *visited-nodes*)))))
     (pushnew pos *visited-nodes*)   ; posを訪問済みノードに追加する
