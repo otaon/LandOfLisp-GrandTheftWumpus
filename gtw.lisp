@@ -34,15 +34,9 @@
   "リストの全てのキーとバリューをハッシュテーブルにプッシュする"
   (let ((al nil))
     (maphash (lambda (k v)
-             (princ (cons k (list v)))
-             (fresh-line)
-             (push (cons k (list v)) al))
-           edge-hash-table)
-    ;;
-    ;;====================================
-    ;; ハッシュテーブルにしたことで必要なデータが落ちているのでは……？要確認
-    ;;====================================
-    ;;
+               (push (cons k (car v)) al))
+             edge-hash-table)
+    (princ al)
     al));}}}
 
 
@@ -205,13 +199,13 @@
    node: 基準となるノード 2
    edge-hash-table: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
    return: 直接繋がっているノードのリスト (1 3)"
-  (mapcar #'car (cdr (gethash node edge-hash-table))));}}}
+  (mapcar #'car (car (gethash node edge-hash-table))));}}}
 
 (defun within-one (a b edge-hash-table);{{{
   "ノードbが他ノードaと隣同士で繋がっているかを返す
    a: 基準となるノード 1
    b: 隣同士で繋がっているか判定したいノード 3
-   edge-hash-table: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
+   edge-hash-table: 街のエッジのハッシュテーブル ((1 (2)) (2 (1) (3)) (3 (2)))
    return: 隣同士で繋がっているかの真偽値 nil"
   (member b (neighbors a edge-hash-table)));}}}
 
@@ -219,7 +213,7 @@
   "ノードbが隣同士で、または、他ノードを挟んでノードaと繋がっているかを返す
    a: 基準となるノード 1
    b: 隣同士で、または、他ノードを挟んで繋がっているか判定したいノード 3
-   edge-hash-table: 街のエッジのリスト ((1 (2)) (2 (1) (3)) (3 (2)))
+   edge-hash-table: 街のエッジのハッシュテーブル ((1 (2)) (2 (1) (3)) (3 (2)))
    return: 隣同士で、または、他ノードを挟んで繋がっているかの真偽値 t"
   (or (within-one a b edge-hash-table)
       ;; aの隣のノードの中で、bの隣のノードが1つ以上存在するか
@@ -246,7 +240,7 @@
                           ;; glow wormがいるノードには「glow-worms」情報を追加
                           ;; glow wormが隣にいるノードには「lights!」情報を追加
                           (cond ((member n glow-worms)
-                                 '(glow-worms))
+                                 '(glow-worm))
                                 ((some (lambda (worm)
                                          (within-one n worm edge-hash-table))
                                        glow-worms)
@@ -303,7 +297,7 @@
             ;; - 現在プレイヤーがいないノードなら(node node情報)を表示する
             ;; nodeがまだ訪れていないノードなら(node番号 ?)を表示する
             (if (member node *visited-nodes*)
-                (let ((n (gethash node *congestion-city-nodes*)))
+                (let ((n (cons node (car (gethash node *congestion-city-nodes*)))))
                   (if (eql node *player-pos*)
                       (append n '(*))
                       n))
@@ -320,7 +314,7 @@
                     ;; return '(2 1 3)
                     (mapcan (lambda (node)
                               (mapcar #'car
-                                      (cdr (gethash node *congestion-city-edges*))))
+                                      (car (gethash node *congestion-city-edges*))))
                             *visited-nodes*)))));}}}
 
 (defun known-city-edges ();{{{
@@ -337,7 +331,7 @@
                                      x
                                      (list (car x))))
                                ;; 既に訪れたノードに直接繋がったリスト
-                               (cdr (gethash node *congestion-city-edges*)))))
+                               (car (gethash node *congestion-city-edges*)))))
           *visited-nodes*));}}}
 
 
@@ -359,8 +353,8 @@
    攻撃を選択していたら攻撃する"
   ;; 現在位置からposへ行く道があれば、移動と、場合によっては攻撃する
   ;; 現在位置からposへ行く道がなければ、移動できない旨のメッセージを表示する
-  (let ((edge (gethash pos
-                     (cdr (gethash *player-pos* *congestion-city-edges*)))))
+  (let ((edge (assoc pos
+                     (car (gethash *player-pos* *congestion-city-edges*)))))
     (if edge
         (handle-new-place edge pos charging)
         (princ "That location does not exist!"))));}}}
@@ -371,7 +365,7 @@
   ;; has-worm: glow wormがいるか否かのフラグ
   ;;           ただしglow worm は1匹につき1回のみ攻撃するため、
   ;;           訪問済みノードの場合、glow wormはいないものとする
-  (let* ((node (gethash pos *congestion-city-nodes*))
+  (let* ((node (car (gethash pos *congestion-city-nodes*)))
          (has-worm (and (member 'glow-worm node)
                         (not (member pos *visited-nodes*)))))
     (pushnew pos *visited-nodes*)   ; posを訪問済みノードに追加する
